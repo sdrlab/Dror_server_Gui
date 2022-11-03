@@ -172,30 +172,30 @@ def update_sent_file(value):
 def host_server_function(n_clicks,value_of_file):
         file_name=value_of_file
         filesize=os.path.getsize(file_name)
+        print(filesize)
         s=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.bind((HOST, PORT))
         s.listen()
         conn, addr =s.accept()
-        progress = tqdm.tqdm(range(filesize), f"Sending {file_name}", unit="B", unit_scale=True, unit_divisor=1024)
+        #progress = tqdm.tqdm(range(filesize), f"Sending {file_name}", unit="B", unit_scale=True, unit_divisor=1024)
         
         conn.sendall(str.encode(file_name))
         print(conn.recv(1024))
-        conn.sendall(str.encode(filesize))
+        conn.sendall(str.encode(str(filesize)))
         print(conn.recv(1024))
-
         with open(file_name,"rb") as f:
             print(f"Connected by {addr}")
             while True:  
-                    #read bytes from file 
+                    #read bytes from file
                     bytes_read=f.read(filesize)
                     if not bytes_read:
                         #file transmitting is done 
                         break
                     #we used sendall to assure transmittion in busy network
                     conn.sendall(bytes_read)
-                    progress.update(len(bytes_read))
-                    print(conn.recv(1024))
-                    break
+                    #progress.update(len(bytes_read))
+                    # print(conn.recv(1024))
+                    # break
         conn.close()
         return f"send {value_of_file} to raspberry pi FINISHED"            
         
@@ -225,4 +225,4 @@ def host_server_function(n_clicks,value_of_file):
 
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(debug=True,host='10.0.0.27')
