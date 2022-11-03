@@ -10,7 +10,7 @@ from dash import Dash, html, dcc
 import plotly.express as px
 import pandas as pd
 from urllib.parse import quote as urlquote
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output , State
 import socket
 import logging
 import threading
@@ -36,20 +36,6 @@ file_name=""
 #             if not data:
 #                 break
 #             conn.sendall(data)
-def thread_server():
-    s=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind((HOST, PORT))
-    s.listen()
-    conn, addr =s.accept()
-    with conn:
-        print(f"Connected by {addr}")
-        while True:
-            data=conn.recv(1024)
-            if not data:
-                break
-            conn.sendall(data)
-
-
 # server_thread=threading.Thread(target=thread_server)
 # server_thread.start()
 app=Dash(__name__)
@@ -66,7 +52,7 @@ init_file_path=dir_path
 app.layout = html.Div([
         html.H1('Raspberry Data Transfer protocol',style={'textAlign':'center', 'color':'Blue'}),
         html.Br(),
-        'Select file to upload to your send list',
+        'Select file to upload to your Raspberry pi',
         
         # dcc.Input(id='Raspberry_ip',type='text',value='0.0.0.0'),
         # dcc.Input(id='Raspberry_port',type='text',value='00000'),
@@ -74,7 +60,7 @@ app.layout = html.Div([
          
         
         dcc.Upload(
-            id='upload_file',
+            id='client_upload_file',
             children=html.Div(['Drag and Drop or',html.A('Select Files')]),
             style={
             'width': '100%',
@@ -90,6 +76,7 @@ app.layout = html.Div([
             # Allow multiple files to be uploaded
             multiple=True
             ),
+            'select file to upload to your Host',
             html.H3(['the selected folder is :' ,dir_path]),
             'the files in the folders are',
             html.Br(),
@@ -147,7 +134,7 @@ def save_file(name, content):
     
     
 @app.callback(Output("dynamic_file_dropdown", "options"),
-    [Input("upload_file", "filename"), Input("upload_file", "contents")],
+    [Input("client_upload_file", "filename"), Input("client_upload_file", "contents")],
     
 )
 def update_options(uploaded_filenames, uploaded_file_contents):
@@ -171,10 +158,18 @@ def update_sent_file(value):
     print(f"you decided to send {file_name}")
     return value
 
+
+
+
+
+
+#send file from Raspberry pi to Host 
+
 @app.callback(Output("acknowledge_from_pi","value"),
-              [Input('dynamic_file_dropdown','value')],prevent_initial_call=True
+              Input('send_button','n_clicks'),
+              State('dynamic_file_dropdown','value'),prevent_initial_call=True
               )
-def host_server_function(value_of_file):
+def host_server_function(n_clicks,value_of_file):
         file_name=value_of_file
         filesize=os.path.getsize(file_name)
         s=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -205,6 +200,7 @@ def host_server_function(value_of_file):
                     print(conn.recv(1024))
                     phase_counter+=1
                 else:
+                    conn.close()
                     return f"send {value_of_file} to raspberry pi FINISHED"
                     
                     
