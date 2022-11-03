@@ -177,31 +177,28 @@ def host_server_function(n_clicks,value_of_file):
         s.listen()
         conn, addr =s.accept()
         progress = tqdm.tqdm(range(filesize), f"Sending {file_name}", unit="B", unit_scale=True, unit_divisor=1024)
+        
+        conn.sendall(str.encode(file_name))
+        print(conn.recv(1024))
+        conn.sendall(str.encode(filesize))
+        print(conn.recv(1024))
+
         with open(file_name,"rb") as f:
             print(f"Connected by {addr}")
-            phase_counter=0
-            while True:
-                if(phase_counter==0):
-                    #send message of our intention to send this file name to raspberry pi
-                    conn.sendall(str.encode(file_name))
-                    print(conn.recv(1024))
-                    phase_counter+=1
-                elif(phase_counter==1):    
+            while True:  
                     #read bytes from file 
-                    bytes_read=f.read(BUFFER_SIZE)
+                    bytes_read=f.read(filesize)
                     if not bytes_read:
                         #file transmitting is done 
                         break
-                    phase_counter+=1
-                elif(phase_counter==2):
                     #we used sendall to assure transmittion in busy network
                     conn.sendall(bytes_read)
                     progress.update(len(bytes_read))
                     print(conn.recv(1024))
-                    phase_counter+=1
-                else:
-                    conn.close()
-                    return f"send {value_of_file} to raspberry pi FINISHED"
+                    break
+        conn.close()
+        return f"send {value_of_file} to raspberry pi FINISHED"            
+        
                     
                     
    # with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
